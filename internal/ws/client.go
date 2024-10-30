@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -24,7 +25,7 @@ func (c *Client) writeMsg() {
 		ticker.Stop()
 		c.conn.Close()
 	}()
-	
+
 	for {
 		select {
 		case message, ok := <-c.send:
@@ -49,7 +50,7 @@ func (c *Client) writeMsg() {
 			if err := w.Close(); err != nil {
 				return
 			}
-		case <- ticker.C:
+		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
@@ -65,7 +66,7 @@ func (c *Client) readMsg() {
 	}()
 	c.conn.SetReadLimit(512)
 	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(60 * time.Second)); return nil})
+	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(60 * time.Second)); return nil })
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
@@ -76,10 +77,29 @@ func (c *Client) readMsg() {
 	}
 }
 
-func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func ServeWS(hubMap map[string]*Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
+	}
+
+	u := r.URL
+	var hub *Hub
+	params := u.Query()
+	joinRoom := params.Get("joinRoom")
+
+	if joinRoom == "" {
+		log.Printf("Requested URL: %s", r.URL.String())
+		log.Printf("Query parameters: %v", r.URL.RawQuery)
+		return
+	}
+
+	if _, ok := hubMap[joinRoom]; !ok {
+		hub = NewHub()
+		go hub.Run()
+		hubMap[joinRoom] = hub
+	} else {
+		hub = hubMap[joinRoom]
 	}
 
 	client := &Client{

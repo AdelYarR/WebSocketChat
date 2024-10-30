@@ -7,11 +7,10 @@ import (
 )
 
 func main() {
-	hub := ws.NewHub()
-	go hub.Run()
+	hubMap := make(map[string]*ws.Hub)
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		ws.ServeWS(hub, w, r)
+		ws.ServeWS(hubMap, w, r)
 	})
 
 	http.ListenAndServe("localhost:8080", nil)
