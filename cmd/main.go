@@ -28,22 +28,8 @@ func main() {
 
 	fmt.Println(ping)
 
-	err = client.Set(context.Background(), "name", "Test", 0).Err()
-	if err != nil {
-		fmt.Println("failed to set the value: " + err.Error())
-		return
-	}
-
-	val, err := client.Get(context.Background(), "name").Result()
-	if err != nil {
-		fmt.Println("failed to get the value: " + err.Error())
-		return
-	}
-
-	fmt.Printf("value retrieved from redis: %s\n", val)
-
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		ws.ServeWS(hubMap, w, r)
+		ws.ServeWS(client, hubMap, w, r)
 	})
 
 	http.ListenAndServe(cfg.BindAddr, nil)

@@ -5,14 +5,17 @@ type Hub struct {
 	register   chan *Client
 	unregister chan *Client
 	clients    map[*Client]bool
+	id         string
 }
 
-func NewHub() *Hub {
+func NewHub(joinRoom string) *Hub {
+
 	return &Hub{
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
+		id:         joinRoom,
 	}
 }
 
